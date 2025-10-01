@@ -1,9 +1,8 @@
 import streamlit as st
 import requests
 
-API_URL = "http://127.0.0.1:8000"  # ton API FastAPI
+API_URL = "http://127.0.0.1:8000"  
 
-# === Session persistante pour garder le cookie ===
 if "api_session" not in st.session_state:
     st.session_state.api_session = requests.Session()
 
@@ -11,25 +10,25 @@ if "user_id" not in st.session_state:
     st.session_state.user_id = None
 
 # === Auth ===
-st.sidebar.header("🔑 Authentification")
-choice = st.sidebar.radio("Action :", ["Connexion", "Inscription"])
+st.sidebar.header("🔑 Authentication")
+choice = st.sidebar.radio("Action:", ["Login", "Register"])
 
-username = st.sidebar.text_input("Nom d'utilisateur")
-password = st.sidebar.text_input("Mot de passe", type="password")
+username = st.sidebar.text_input("Username")
+password = st.sidebar.text_input("Password", type="password")
 
-if choice == "Inscription":
-    if st.sidebar.button("Créer un compte"):
+if choice == "Register":
+    if st.sidebar.button("Create account"):
         res = st.session_state.api_session.post(
             f"{API_URL}/register",
             json={"username": username, "password": password}
         )
         if res.status_code == 200:
-            st.success("✅ Compte créé, connecte-toi maintenant")
+            st.success("✅ Account created, please login now")
         else:
             st.error(res.json()["detail"])
 
-if choice == "Connexion":
-    if st.sidebar.button("Se connecter"):
+if choice == "Login":
+    if st.sidebar.button("Login"):
         res = st.session_state.api_session.post(
             f"{API_URL}/login",
             json={"username": username, "password": password}
@@ -38,21 +37,21 @@ if choice == "Connexion":
             data = res.json()
             if "user_id" in data:
                 st.session_state.user_id = data["user_id"]
-                st.success(f"✅ Connecté en tant que {st.session_state.user_id}")
+                st.success(f"✅ Logged in as {st.session_state.user_id}")
             else:
-                st.error("Réponse inattendue de l'API")
+                st.error("Unexpected API response")
         else:
-            st.error(res.json().get("detail", "Erreur de connexion"))
+            st.error(res.json().get("detail", "Login error"))
 
-# === App principale ===
-st.title("📚 DocuAgent - Analyse de documents")
+# === Main App ===
+st.title("📚 DocuAgent - Document Analysis")
 
 if st.session_state.user_id:
-    st.subheader(f"Bienvenue {st.session_state.user_id} !")
+    st.subheader(f"Welcome {st.session_state.user_id}!")
 
-    # === Upload fichier ===
-    st.header("📤 Charger un document")
-    uploaded_file = st.file_uploader("Choisis un fichier (PDF, TXT, MD)", type=["pdf", "txt", "md"])
+    # === Upload file ===
+    st.header("📤 Upload a document")
+    uploaded_file = st.file_uploader("Choose a file (PDF, TXT, MD)", type=["pdf", "txt", "md"])
     if uploaded_file is not None:
         files = {"file": (uploaded_file.name, uploaded_file.getvalue())}
         res = st.session_state.api_session.post(
@@ -60,98 +59,97 @@ if st.session_state.user_id:
             files=files
         )
         if res.status_code == 200:
-            st.success(f"✅ Fichier {uploaded_file.name} chargé")
+            st.success(f"✅ File {uploaded_file.name} uploaded")
             st.json(res.json())
         else:
             st.error(res.json()["detail"])
 
-    # === Onglets pour les actions ===
+    # === Tabs for actions ===
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
-        ["📝 Résumé", "🏷️ Classification", "🌍 Traduction", "🤖 Agent", "🗂️ Mémoire", "💬 Chat libre"]
+        ["📝 Summary", "🏷️ Classification", "🌍 Translation", "🤖 Agent", "🗂️ Memory", "💬 Free Chat"]
     )
 
-    # Résumé
+    # Summary
     with tab1:
-        st.subheader("Résumé du document")
-        if st.button("Générer le résumé"):
+        st.subheader("Document Summary")
+        if st.button("Generate summary"):
             res = st.session_state.api_session.post(f"{API_URL}/doc_summary")
             data = res.json()
             if res.status_code == 200 and "summary" in data:
-                st.success("✅ Résumé généré")
+                st.success("✅ Summary generated")
                 st.write(data["summary"])   
             else:
-                st.error(data.get("detail", "Erreur inattendue"))
+                st.error(data.get("detail", "Unexpected error"))
                 st.json(data)
 
     # Classification
     with tab2:
-        st.subheader("Classification du document")
-        if st.button("Classifier le document"):
+        st.subheader("Document Classification")
+        if st.button("Classify document"):
             res = st.session_state.api_session.post(f"{API_URL}/doc_classify")
             data = res.json()
             if res.status_code == 200 and "category" in data:
-                st.success("✅ Classification réussie")
-                st.markdown(f"**Catégorie :** {data['category']}")
-                st.markdown(f"**Confiance :** {round(data['confidence']*100, 2)} %")
+                st.success("✅ Classification successful")
+                st.markdown(f"**Category:** {data['category']}")
+                st.markdown(f"**Confidence:** {round(data['confidence']*100, 2)} %")
             else:
-                st.error(data.get("detail", "Erreur inattendue"))
+                st.error(data.get("detail", "Unexpected error"))
                 st.json(data)  
 
-
-    # Traduction
+    # Translation
     with tab3:
-        st.subheader("Traduction du résumé")
-        if st.button("Traduire"):
+        st.subheader("Summary Translation")
+        if st.button("Translate"):
             res = st.session_state.api_session.post(f"{API_URL}/doc_translate?user_id={st.session_state.user_id}") 
             data = res.json()
             if res.status_code == 200:
-                st.success("✅ Traduction générée")
+                st.success("✅ Translation generated")
                 st.write(data["translated"])
             else:
-                st.error(data.get("detail", "Erreur inattendue"))
+                st.error(data.get("detail", "Unexpected error"))
                 st.json(data)  
 
     # Agent
     with tab4:
-        st.subheader("Interroger l’agent")
-        query = st.text_area("Pose ta question")
-        if st.button("Envoyer"):
+        st.subheader("Ask the Agent")
+        query = st.text_area("Ask your question")
+        if st.button("Send"):
             res = st.session_state.api_session.post(f"{API_URL}/agent", json={"query": query})
             data = res.json()
             if res.status_code == 200:
                 if data.get("response"):
-                    st.success("✅ Réponse de l’agent")
+                    st.success("✅ Agent response")
                     st.write(data["response"])
                 else:
-                    st.warning("⚠️ Aucun résultat trouvé dans le document.")
+                    st.warning("⚠️ No result found in the document.")
             else:
-                st.error(data.get("detail", "Erreur inattendue"))
+                st.error(data.get("detail", "Unexpected error"))
                 st.json(data)
     
-    # Mémoire
+    # Memory
     with tab5:
-        st.subheader("🗂️ Historique de la mémoire")
-        if st.button("Afficher l'historique"):
+        st.subheader("🗂️ Memory History")
+        if st.button("Show history"):
             res = st.session_state.api_session.get(f"{API_URL}/history")
             data = res.json()
             if res.status_code == 200:
-                st.success(f"Historique de {data['user_id']}")
+                st.success(f"History of {data['user_id']}")
                 for msg in data["messages"]:
                     role = msg["type"]
                     content = msg["content"]
                     st.markdown(f"**{role}:** {content}")
             else:
-                st.error(data.get("detail", "Erreur inattendue"))
+                st.error(data.get("detail", "Unexpected error"))
                 st.json(data)
 
-    # Chat libre
+    # Free Chat
     with tab6:
-        st.subheader("💬 Conversation libre avec le bot")
+        st.subheader("💬 Free conversation with the bot")
         if "chat_history" not in st.session_state:
             st.session_state.chat_history = []
 
-        query = st.text_area("Ton message")
-        if st.button("Envoyer au chat"):
+        query = st.text_area("Your message")
+        if st.button("Send to chat"):
             res = st.session_state.api_session.post(f"{API_URL}/chat", json={"query": query})
             data = res.json()
             if res.status_code == 200:
@@ -161,11 +159,11 @@ if st.session_state.user_id:
                 st.session_state.chat_input = ""
                 st.rerun()
 
-        # Affichage historique local
+        # Local history display
         if st.session_state.chat_history:
-            st.subheader("Historique de la conversation")
+            st.subheader("Conversation History")
             for role, content in st.session_state.chat_history:
                 st.markdown(f"**{role}**: {content}")
 
 else:
-    st.info("🔒 Connecte-toi ou inscris-toi pour utiliser l’application.")
+    st.info("🔒 Please log in or register to use the app.")

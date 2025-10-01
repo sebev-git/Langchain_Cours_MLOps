@@ -1,15 +1,9 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File, Response, Cookie
 from pydantic import BaseModel
-from typing import List, Dict, Optional
-import os, json, uuid
+
 from langchain_core.documents import Document
 from langchain_core.runnables.history import RunnableWithMessageHistory
-from dotenv import load_dotenv
 
-load_dotenv()
-
-
-# === CHAÎNES / AGENT / OUTILS ===
 from src.documents import tools
 from src.core.chains import summary_chain, classification_chain, translation_chain, chat_chain
 from src.core.parsers import summary_parser, classification_parser, translation_parser
@@ -17,11 +11,13 @@ from src.core.llm import llm
 from src.memory.session import SessionManager
 from src.agents.doc_agent import agent
 
-# === CONFIG ===
-app = FastAPI(title="LangChain Project API", version="1.0.0")
-session_manager = SessionManager(memory_type="file", token_limit=1000)
+from typing import List, Dict, Optional
+import os, json, uuid
 
-# === USERS (stockage JSON simple) ===
+app = FastAPI(title="LangChain Project API", version="3.1.0")
+session_manager = SessionManager(memory_type="file", token_limit=500)
+
+# === USERS (stockage JSON) ===
 USERS_FILE = "users.json"
 if not os.path.exists(USERS_FILE):
     with open(USERS_FILE, "w") as f:
@@ -43,12 +39,12 @@ def save_users(users: Dict[str, Dict[str, str]]) -> None:
     with open(USERS_FILE, "w") as f:
         json.dump(users, f)
 
-# === SESSIONS (multi-utilisateurs via cookies) ===
-SESSIONS: Dict[str, str] = {}  # session_id -> username
+# === SESSIONS with cookies ===
+SESSIONS: Dict[str, str] = {}  
 
 def get_user_from_cookie(session_id: Optional[str]) -> str:
     if not session_id or session_id not in SESSIONS:
-        raise HTTPException(status_code=401, detail="Utilisateur non connecté")
+        raise HTTPException(status_code=401, detail="User not connected")
     return SESSIONS[session_id]
 
 # === MODELS ===
@@ -56,19 +52,16 @@ class User(BaseModel):
     username: str
     password: str
 
-class AgentInput(BaseModel):
-    query: str
-
 # === AUTH ROUTES ===
 @app.post("/register")
 def register(user: User):
     users = load_users()
     if user.username in users:
-        raise HTTPException(status_code=400, detail="Utilisateur déjà existant.")
+        raise HTTPException(status_code=400, detail="User already exists.")
     users[user.username] = {"password": user.password}
     save_users(users)
     session_manager.create_session(user.username)
-    return {"message": f"Utilisateur {user.username} créé avec succès."}
+    return {"message": f"User {user.username} created successfully."}
 
 @app.post("/login")
 def login(user: User, response: Response):
@@ -81,9 +74,6 @@ def login(user: User, response: Response):
     response.set_cookie(key="session_id", value=session_id, httponly=True)
     return {"message": "Connexion réussie", "user_id": user.username}
 
-# === PIPELINE ===
-
-# 1) Upload + Nettoyage
 @app.post("/upload_file")
 async def upload_file(file: UploadFile = File(...), session_id: Optional[str] = Cookie(None)):
     user_id = get_user_from_cookie(session_id)
@@ -99,7 +89,7 @@ async def upload_file(file: UploadFile = File(...), session_id: Optional[str] = 
         folder, loader = "data/md", tools.load_markdown_tool
         payload = {"path": None}
     else:
-        raise HTTPException(status_code=400, detail="Format non supporté. Seuls PDF, TXT et Markdown sont acceptés.")
+        raise HTTPException(status_code=400, detail="Unsupported format. Only PDF, TXT, and Markdown are accepted.")
 
     os.makedirs(folder, exist_ok=True)
     file_path = os.path.join(folder, filename)
@@ -119,84 +109,83 @@ async def upload_file(file: UploadFile = File(...), session_id: Optional[str] = 
         ]
         tools.DOC_STORE = cleaned_docs
 
-        memory = session_manager.create_session(user_id)
-        memory.add_ai_message(f"Fichier {filename} chargé et nettoyé ({len(docs)} pages).")
-
         return {"message": f"Fichier {filename} chargé et nettoyé", "pages": len(docs), "path": file_path}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur upload: {e}")
 
-# 2) Résumé
 @app.post("/doc_summary")
 def doc_summary(session_id: Optional[str] = Cookie(None)):
     user_id = get_user_from_cookie(session_id)
-    if not tools.DOC_STORE:
-        raise HTTPException(status_code=400, detail="Aucun document chargé")
-    fmt = summary_parser.get_format_instructions()
+    memory = session_manager.create_session(user_id)
     text = " ".join(doc.page_content for doc in tools.DOC_STORE)
-    try:
-        result = summary_chain.invoke({"texte": text, "format_instructions": fmt})
-        memory = session_manager.create_session(user_id)
-        memory.add_ai_message(f"Résumé global : {result.summary}")
-        return {"summary": result.summary}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur résumé: {e}")
 
-# 3) Classification
-@app.post("/doc_classify")  
+    try:
+        result = summary_chain.invoke({
+            "input": text,
+            "format_instructions": summary_parser.get_format_instructions()
+            })
+
+        memory.add_ai_message(f"Global Summary : {result.summary}")
+        return {"summary": result.summary}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Summary error: {e}")
+
+@app.post("/doc_classify")
 def doc_classify(session_id: Optional[str] = Cookie(None)):
     user_id = get_user_from_cookie(session_id)
-    if not tools.DOC_STORE:
-        raise HTTPException(status_code=400, detail="Aucun document chargé")
-    fmt = classification_parser.get_format_instructions()
-    try:
-        summary_res = doc_summary(session_id)
-        text_to_classify = summary_res["summary"]
-        res = classification_chain.invoke({"texte": text_to_classify, "format_instructions": fmt})
-        memory = session_manager.create_session(user_id)
-        memory.add_ai_message(f"Classification : {res.category}")
-        return {"category": res.category, "confidence": res.confidence}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur classification: {e}")
+    memory = session_manager.create_session(user_id)
+    summary_res = doc_summary(session_id)
+    text_to_classify = summary_res["summary"]
 
-# 4) Traduction
+    try:
+        result = classification_chain.invoke({
+            "input": text_to_classify,
+            "format_instructions": classification_parser.get_format_instructions()
+            })
+
+        memory.add_ai_message(f"Classification : {result.category}")
+        return {"category": result.category, "confidence": result.confidence}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Classification error: {e}")
+
 @app.post("/doc_translate")
-def doc_translate(mode: str = "summary", session_id: Optional[str] = Cookie(None)):
+def doc_translate(session_id: Optional[str] = Cookie(None)):
     user_id = get_user_from_cookie(session_id)
-    if not tools.DOC_STORE:
-        raise HTTPException(status_code=400, detail="Aucun document chargé")
-    fmt = translation_parser.get_format_instructions()
-    try:
-        if mode == "summary":
-            text_to_translate = doc_summary(session_id)["summary"]
-        else:
-            text_to_translate = " ".join(doc.page_content for doc in tools.DOC_STORE)
-        res = translation_chain.invoke({"texte": text_to_translate, "format_instructions": fmt})
-        memory = session_manager.create_session(user_id)
-        memory.add_ai_message(f"Traduction : {res.translated_text}")
-        return {"translated": res.translated_text}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur traduction: {e}")
+    memory = session_manager.create_session(user_id)
+    text_to_translate = doc_summary(session_id)["summary"]
 
-# 5) Agent
+    try:
+        result = translation_chain.invoke({
+            "input": text_to_translate,
+            "format_instructions": translation_parser.get_format_instructions()
+        })
+
+        memory.add_ai_message(f"Translation : {result.translated_text}")
+        return {"translated": result.translated_text}
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Translation error: {e}")
+
+class AgentInput(BaseModel):
+    query: str
+
 @app.post("/agent")
 def run_agent(input: AgentInput, session_id: Optional[str] = Cookie(None)):
     user_id = get_user_from_cookie(session_id)
-    if not tools.DOC_STORE:
-        raise HTTPException(status_code=400, detail="Aucun document chargé")
+    memory = session_manager.create_session(user_id)
 
     try:
-        # Étape 1 : l'agent cherche avec les tools
-        raw_results = agent.invoke({"input": input.query})
+        # Step 1: The agent searches using the tools
+        raw_results = "\n\n".join(doc.page_content for doc in tools.DOC_STORE)
 
-        # Étape 2 : LLM restitue directement sans tool
+        # Step 2: LLM outputs directly without tools
         response_text = llm.invoke(
-            f"Voici les extraits trouvés dans le document pour '{input.query}':\n{raw_results}\n"
-            "Rédige une réponse claire et synthétique pour l’utilisateur."
+            f"Here are the extracts found in the document for '{input.query}':\n{raw_results}\n"
+            "Write a clear and concise response for the user."
         )
 
-        # Sauvegarde mémoire
-        memory = session_manager.create_session(user_id)
         memory.add_user_message(input.query)
         memory.add_ai_message(str(response_text))
 
@@ -204,11 +193,10 @@ def run_agent(input: AgentInput, session_id: Optional[str] = Cookie(None)):
             "response": response_text.content,
             "context": raw_results
         }
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur agent: {e}")
+        raise HTTPException(status_code=500, detail=f"Agent error: {e}")
 
-
-# 6) Historique
 @app.get("/history")
 def get_history(session_id: Optional[str] = Cookie(None)):
     user_id = get_user_from_cookie(session_id)
@@ -218,7 +206,6 @@ def get_history(session_id: Optional[str] = Cookie(None)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"History reading error: {e}")
 
-# 7) Chat Libre
 @app.post("/chat")
 def chat(input: AgentInput, session_id: Optional[str] = Cookie(None)):
     
@@ -236,4 +223,4 @@ def chat(input: AgentInput, session_id: Optional[str] = Cookie(None)):
         )
         return {"response": result.content}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Chat Error: {e}")
+        raise HTTPException(status_code=500, detail=f"Chat error: {e}")

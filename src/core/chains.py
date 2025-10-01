@@ -1,23 +1,15 @@
 from .llm import llm
-from src.prompts.prompts import (
-    summary_prompt,
-    classification_prompt,
-    translation_prompt,
-    chat_prompt
-)
-from src.core.parsers import (
-    classification_parser,
-    summary_parser,
-    translation_parser,
-)
+from src.prompts.prompts import classification_prompt, summary_prompt, translation_prompt, chat_prompt
+from src.core.parsers import classification_parser, summary_parser, translation_parser
 
-# 1. Résumé automatique
+
+# Classification 
+classification_chain = classification_prompt | llm | classification_parser 
+
+# Résumé automatique
 summary_chain = summary_prompt | llm | summary_parser
 
-# 2. Classification libre
-classification_chain = classification_prompt | llm | classification_parser
-
-# 3. Traduction
+# Traduction
 translation_chain = translation_prompt | llm | translation_parser
 
 chat_chain = chat_prompt | llm
