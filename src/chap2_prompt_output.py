@@ -1,43 +1,34 @@
-from src.core.chains import classification_chain, summary_chain, translation_chain
+from src.core.chains import classification_chain
+from src.core.parsers import classification_parser
 
-print("\n=== Démonstration Chapitre 2 : Classification, Résumé & Traduction ===\n")
+text = """
+Artificial intelligence is a concept coined in the mid-1950s, following the reflections of mathematician Alan Turing, 
+who wondered whether a computer would one day be able to think, or if it was only capable of an imitation game.
+"""
 
-# Texte de départ 
-doc = """L'intelligence artificielle (IA) est l'ensemble des programmes ou algorithmes permettant aux machines d'effectuer des tâches typiquement associées à l'intelligence humaine, comme l'apprentissage, le raisonnement, la résolution de problème, la perception ou la prise de décision. L'intelligence artificielle est également le champ de recherche visant à développer de telles machines ainsi que les systèmes informatiques qui en résultent.
-
-Souvent classée dans le domaine des mathématiques et des sciences cognitives, l'IA fait appel à des disciplines telles que la neurobiologie computationnelle (qui a notamment inspiré les réseaux neuronaux artificiels), les statistiques, ou l'algèbre linéaire. Elle vise à résoudre des problèmes à forte complexité logique ou algorithmique. Par extension, dans le langage courant, l'IA inclut les dispositifs imitant ou remplaçant l'homme dans certaines mises en œuvre de ses fonctions cognitives.
-
-Les applications de l'IA couvrent de nombreux domaines, notamment les moteurs de recherche, les systèmes de recommandation, l'aide au diagnostic médical, la compréhension du langage naturel, les voitures autonomes, les chatbots, les outils de génération d'images, les outils de prise de décision automatisée, les programmes compétitifs dans des jeux de stratégie et certains personnages non-joueurs de jeu vidéo."""
-
-# 1. Classification
-print("--- Classification ---")
 response = classification_chain.invoke({
-    "texte": doc,
-    "format_instructions": classification_chain.steps[-1].get_format_instructions()
+    "input": text,
+    "format_instructions": classification_parser.get_format_instructions()
 })
-print("Catégorie :", response.category)
-print("Confiance :", response.confidence)
+print("Category:", response.category)
+print("Confidence:", response.confidence)
 
-# 2. Résumé
-print("\n--- Résumé en 3 points ---")
+from src.core.chains import summary_chain, translation_chain
+from src.core.parsers import summary_parser, translation_parser
+
+# Summary
+print("\n--- Summary ---")
 response = summary_chain.invoke({
-    "texte": doc,
-    "format_instructions": summary_chain.steps[-1].get_format_instructions()
+    "input": text,
+    "format_instructions": summary_parser.get_format_instructions()
 })
-print("Résumé en 3 points :", response.summary_points)
+print("Summary:", response.summary)
 
-# 3. Traduction (avec streaming)
-print("\n--- Traduction (Streaming) ---")
-sentence = doc  
-stream = translation_chain.stream({
-    "texte": sentence,
-    "format_instructions": translation_chain.steps[-1].get_format_instructions()
+# Translation 
+print("\n--- Translation ---")
+response = translation_chain.invoke({
+    "input": text,
+    "format_instructions": translation_parser.get_format_instructions()
 })
 
-# Affichage progressif
-result = None
-for chunk in stream:
-    result = chunk 
-
-# Résultat final validé
-print("Texte traduit :", result.translated_text)
+print("\nTranslated text:", response.translated_text)

@@ -1,21 +1,21 @@
 from pydantic import BaseModel, Field
 from langchain_core.output_parsers import PydanticOutputParser
 
-# 1. Classification libre
+# Classification 
 class ClassificationResult(BaseModel):
-    category: str = Field(..., description="Catégorie assignée au texte (ex: IA, Cloud, etc.)")
-    confidence: float = Field(..., description="Score de confiance entre 0 et 1")
+    category: str = Field(..., description="Category assigned to the text (e.g., AI, Cloud, etc.)")
+    confidence: float = Field(..., description="Confidence score between 0 and 1")
 
 classification_parser = PydanticOutputParser(pydantic_object=ClassificationResult)
 
-# 2. Résumé
+# Summary
 class SummaryResult(BaseModel):
-    summary_points: list[str] = Field(..., description="Résumé du texte en 3 points principaux")
+    summary: str = Field(..., description="Summarize while keeping the most important keywords")
 
 summary_parser = PydanticOutputParser(pydantic_object=SummaryResult)
 
-# 3. Traduction
+# Translation
 class TranslationResult(BaseModel):
-    translated_text: str = Field(..., description="Texte traduit en anglais")
+    translated_text: str = Field(..., description="Text translated into French")
 
 translation_parser = PydanticOutputParser(pydantic_object=TranslationResult)
