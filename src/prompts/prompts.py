@@ -16,7 +16,7 @@ classification_prompt = ChatPromptTemplate.from_messages([
     # Instruction générale
     ("human",
      "Analyse le texte suivant et propose UNIQUEMENT une seule catégorie adaptée :\n\n"
-     "Texte : {texte}\n\n"
+     "Texte : {input}\n\n"
      "{format_instructions}")
 ])
 
@@ -28,7 +28,7 @@ summary_prompt = ChatPromptTemplate.from_messages([
     ("human", 
      "Résume le texte suivant et veille à garder les mots clés les plus importants.\n\n"
      "IMPORTANT : Réponds UNIQUEMENT avec un JSON valide, sans texte en dehors du JSON.\n\n"
-     "Texte : {texte}\n\n"
+     "Texte : {input}\n\n"
      "{format_instructions}")
 ])
 
@@ -42,7 +42,7 @@ translation_prompt = ChatPromptTemplate.from_messages([
     
     # Instruction générale
     ("human", 
-     "Traduis ce texte en anglais : {texte}\n\n"
+     "Traduis ce texte en anglais : {input}\n\n"
      "{format_instructions}")
 ])
 

@@ -143,7 +143,7 @@ def doc_summary(session_id: Optional[str] = Cookie(None)):
         raise HTTPException(status_code=500, detail=f"Erreur résumé: {e}")
 
 # 3) Classification
-@app.post("/doc_classify")
+@app.post("/doc_classify")  
 def doc_classify(session_id: Optional[str] = Cookie(None)):
     user_id = get_user_from_cookie(session_id)
     if not tools.DOC_STORE:
@@ -213,9 +213,10 @@ def run_agent(input: AgentInput, session_id: Optional[str] = Cookie(None)):
 def get_history(session_id: Optional[str] = Cookie(None)):
     user_id = get_user_from_cookie(session_id)
     try:
-        return {"user_id": user_id, "messages": session_manager.read_session(user_id)}
+        messages = session_manager.read_session(user_id) or []
+        return {"user_id": user_id, "messages": messages}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur lecture historique: {e}")
+        raise HTTPException(status_code=500, detail=f"History reading error: {e}")
 
 # 7) Chat Libre
 @app.post("/chat")
@@ -235,4 +236,4 @@ def chat(input: AgentInput, session_id: Optional[str] = Cookie(None)):
         )
         return {"response": result.content}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur chat: {e}")
+        raise HTTPException(status_code=500, detail=f"Chat Error: {e}")

@@ -51,6 +51,6 @@ def set_corpus_tool(input_data: Dict[str, List[Document]]) -> str:
 
 @tool("search_keyword_tool")
 def search_keyword_tool(query: str) -> List[str]:
-    """Recherche un mot-clé dans le corpus courant et retourne les extraits correspondants."""
+    """Searches for a keyword in the current corpus and returns the corresponding excerpts."""
     return keyword_search(DOC_STORE, query, k=3)
 
