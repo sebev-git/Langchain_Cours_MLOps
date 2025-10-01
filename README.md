@@ -2,98 +2,65 @@
 
 ## Version française
 
-Ce dépôt contient l’ensemble du code et des ressources nécessaires pour suivre le cours sur LangChain & MLOps.
-Vous y trouverez :
+Dans ce premier chapitre, nous avons posé les bases pour travailler avec LangChain et amorcer la construction d’un assistant intelligent.
 
-```txt
-.
-├── Makefile
-├── README.md
-├── pyproject.toml
-├── data
-│   ├── md
-│   ├── pdf
-│   │   ├── 1.pdf
-│   │   ├── 2.pdf
-│   │   └── 3.pdf
-│   └── txt
-└── src
-    ├── app.py                  # Point d’entrée de l’application
-    ├── chap1_fund_components.py  # Chapitre 1 : composants fondamentaux
-    ├── chap2_prompt_output.py    # Chapitre 2 : prompts & output parsers
-    ├── chap3_docs.py             # Chapitre 3 : gestion des documents
-    ├── chap4_memory.py           # Chapitre 4 : gestion de la mémoire
-    ├── agents
-    │   └── doc_agent.py        # Agent documentaire
-    ├── api
-    │   └── main.py             # API FastAPI (analyse, tests, chat, etc.)
-    ├── core
-    │   ├── chains.py           # Chaînes LangChain (analyse, test, chat…)
-    │   ├── llm.py              # Configuration du modèle LLM
-    │   ├── parsers.py          # Output parsers structurés
-    │   └── tools.py            # Outils génériques
-    ├── documents
-    │   ├── cleaners.py         # Nettoyage des documents
-    │   ├── loaders.py          # Chargement des documents
-    │   ├── search.py           # Recherche dans les documents
-    │   ├── splitters.py        # Découpage en chunks
-    │   └── tools.py            # Outils spécifiques aux documents
-    ├── memory
-    │   ├── memory.py           # Gestion mémoire / historique
-    │   └── session.py          # Sessions multi-utilisateurs
-    ├── prompts
-    │   └── prompts.py          # Prompts structurés
-    └── utils
-        └── token.py            # Gestion des tokens
-```
+1. Environnement de travail
+    - Mise en place d’une arborescence claire (src/, data/, etc.).
+    - Gestion des dépendances avec uv et configuration via pyproject.toml.
+    - Création d’un environnement reproductible et isolé.
 
-👉 **Important** : les fichiers de ce dépôt sont une base. Ils sont destinés à être modifiés, enrichis et adaptés au fur et à mesure que vous progressez dans le cours. Chaque chapitre introduit de nouvelles fonctionnalités que vous implémenterez directement dans ces fichiers.
+2. Composants fondamentaux de LangChain
+    - Utilisation de LiteLLM pour appeler différents modèles (Groq, GPT, Claude…) avec fallback automatique.
+    - Introduction aux Messages :
+        - **SystemMessage** (rôle du modèle),
+        - **HumanMessage** (demande utilisateur),
+        - **AIMessage** (réponse générée).
+
+3. Interface Runnable
+    - ``.invoke()`` : exécution simple.
+    - ``.batch()`` : exécution en parallèle.
+    - ``.stream()`` : génération en continu (streaming).
+    - ``.with_retry()`` : robustesse avec relance automatique.
+
+4. Création de Tools personnalisés
+    - Implémentation de ``word_count`` (compte de mots) et ``char_count`` (compte de caractères).
+    - Découverte du décorateur @tool pour exposer des fonctions au modèle.
+
+5. Première application pratique
+    - Combinaison d’un modèle (ChatLiteLLM), de messages et de tools.
+    - Analyse des réponses du LLM avec nos outils personnalisés.
+
+👉 En résumé, nous avons construit les fondations de LangChain : Messages, Runnables et Tools. Ces briques serviront de socle pour développer un assistant complet dans les chapitres suivants.
 
 ## English version
 
-This repository contains all the code and resources needed to follow the LangChain & MLOps course.
-You will find:
+In this first chapter, we laid the foundations to work with LangChain and start building an intelligent assistant.
 
-```txt
-.
-├── Makefile
-├── README.md
-├── pyproject.toml
-├── data
-│   ├── md
-│   ├── pdf
-│   │   ├── 1.pdf
-│   │   ├── 2.pdf
-│   │   └── 3.pdf
-│   └── txt
-└── src
-    ├── app.py                  # Application entry point
-    ├── chap1_fund_components.py  # Chapter 1: fundamental components
-    ├── chap2_prompt_output.py    # Chapter 2: prompts & output parsers
-    ├── chap3_docs.py             # Chapter 3: document management
-    ├── chap4_memory.py           # Chapter 4: memory management
-    ├── agents
-    │   └── doc_agent.py        # Documentation agent
-    ├── api
-    │   └── main.py             # FastAPI backend (analysis, tests, chat, etc.)
-    ├── core
-    │   ├── chains.py           # LangChain chains (analysis, test, chat…)
-    │   ├── llm.py              # LLM model configuration
-    │   ├── parsers.py          # Structured output parsers
-    │   └── tools.py            # General utilities
-    ├── documents
-    │   ├── cleaners.py         # Document cleaning
-    │   ├── loaders.py          # Document loading
-    │   ├── search.py           # Document search
-    │   ├── splitters.py        # Splitting into chunks
-    │   └── tools.py            # Document-specific tools
-    ├── memory
-    │   ├── memory.py           # Memory / history management
-    │   └── session.py          # Multi-user session management
-    ├── prompts
-    │   └── prompts.py          # Structured prompts
-    └── utils
-        └── token.py            # Token management
-```
+1. Environment setup
+    - Setting up a clear directory structure (src/, data/, etc.).
+    - Managing dependencies
+    - Creating a reproducible and isolated environment.
 
-👉 **Important**: the files in this repository are a starting point. They are meant to be modified, expanded, and adapted as you progress through the course. Each chapter introduces new features that you will implement directly in these files.
+2. Fundamental components of LangChain
+    - Using LiteLLM to call different models (Groq, GPT, Claude…) with automatic fallback.
+    - Introduction to Messages :
+        - **SystemMessage** (role of the model),
+        - **HumanMessage** (user request),
+        - **AIMessage** (generated response).
+
+3. Runnable interface
+    - ``.invoke()`` : simple execution.
+    - ``.batch()`` : parallel execution.
+    - ``.stream()`` : continuous generation (streaming).
+    - ``.with_retry()`` : robustness with automatic retry.
+
+4. Creating custom Tools
+    - Implementation of ``word_count`` (word count) and ``char_count`` (character count).
+    - Discovery of the @tool decorator to expose functions to the model.
+
+5. First practical application
+    - Combination of a model (ChatLiteLLM), messages and tools.
+    - Analysis of the LLM responses with our custom tools.
+
+👉 In short, we built the core building blocks of LangChain: Messages, Runnables, and Tools. These foundations will support the development of a complete assistant in the next chapters.
+
