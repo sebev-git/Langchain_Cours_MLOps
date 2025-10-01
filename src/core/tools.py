@@ -2,10 +2,10 @@ from langchain.agents import tool
 
 @tool
 def word_count(text: str) -> int:
-    """Compte le nombre de mots dans un texte."""
+    """Counts the number of words in a text."""
     return len(text.split())
 
 @tool
 def char_count(text: str) -> int:
-    """Compte le nombre de caractères dans un texte."""
+    """Counts the number of characters in a text."""
     return len(text)
