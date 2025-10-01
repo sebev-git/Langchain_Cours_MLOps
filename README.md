@@ -63,4 +63,3 @@ In this first chapter, we laid the foundations to work with LangChain and start 
     - Analysis of the LLM responses with our custom tools.
 
 👉 In short, we built the core building blocks of LangChain: Messages, Runnables, and Tools. These foundations will support the development of a complete assistant in the next chapters.
-
