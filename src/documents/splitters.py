@@ -14,11 +14,11 @@ def split_documents(documents, max_tokens: int = 600, overlap_sentences: int = 2
 
     final_chunks = []
 
-    # Fusionner toutes les pages en un seul texte
+    # Merge all pages into a single text
     full_text = " ".join(doc.page_content for doc in documents)
     metadata = documents[0].metadata
 
-    # Découper en phrases
+    # Split into sentences
     sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', full_text) if s.strip()]
 
     current_chunk, current_tokens, prev_chunk = [], 0, None
@@ -29,7 +29,7 @@ def split_documents(documents, max_tokens: int = 600, overlap_sentences: int = 2
         if current_tokens + sent_tokens > max_tokens and current_chunk:
             chunk_text = " ".join(current_chunk)
 
-            # Appliquer overlap si un chunk précédent existe
+            # Apply overlap if a previous chunk exists
             chunk_text = add_overlap(prev_chunk, chunk_text, overlap_sentences) if prev_chunk else chunk_text
 
             final_chunks.append(Document(page_content=chunk_text.strip(), metadata=metadata))

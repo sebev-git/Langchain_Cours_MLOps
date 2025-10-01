@@ -3,10 +3,6 @@ from typing import List
 from langchain_core.documents import Document
 
 def keyword_search(docs: List[Document], query: str, k: int = 3) -> List[str]:
-    """
-    Recherche simple par mots-clés dans une liste de Documents.
-    Retourne jusqu'à k extraits contenant la requête.
-    """
     results = []
     query_lower = query.lower()
 
@@ -20,4 +16,4 @@ def keyword_search(docs: List[Document], query: str, k: int = 3) -> List[str]:
                 snippet = text[start:end]
                 results.append(snippet)
 
-    return results[:k] if results else ["Aucun résultat trouvé."]
+    return results[:k] if results else ["No results found."]
